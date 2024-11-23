@@ -116,7 +116,7 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
             value = serverMessage,
             onValueChange = { serverMessage = it },
             label = { Text("Server Message") },
-            enabled = isConnected
+            enabled = isConnected && protocol == "TCP",
         )
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -126,7 +126,7 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
                 viewModel.sendTcpServerMessage(serverMessage)
 
             },
-            enabled = isConnected
+            enabled = isConnected && protocol == "TCP"
         ) {
             Text("Send Message")
         }
