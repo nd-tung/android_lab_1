@@ -12,12 +12,9 @@ class TcpClient(private val serverIp: String, private val serverPort: Int) {
     private var writer: PrintWriter? = null
 
     fun connect() {
-        try {
-            socket = Socket(serverIp, serverPort)
-            writer = PrintWriter(socket!!.getOutputStream(), true)
-        } catch (e: Exception) {
-            Log.d(TAG, e.printStackTrace().toString())
-        }
+
+        socket = Socket(serverIp, serverPort)
+        writer = PrintWriter(socket!!.getOutputStream(), true)
 
         Log.d(TAG, "TCP CONNECTED")
     }

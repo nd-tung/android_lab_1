@@ -32,20 +32,15 @@ class MainViewModel : ViewModel() {
 
     fun connectTcpClient(serverIp: String, serverPort: Int) {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                tcpClient = TcpClient(serverIp, serverPort).apply {
-                    connect()
-                }
-                startListeningForTcpMessages()
-                withContext(Dispatchers.Main) {
-                    _isConnected.value = true
-                }
-            } catch (e: IOException) {
-                e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    _isConnected.value = false
-                }
+
+            tcpClient = TcpClient(serverIp, serverPort).apply {
+                connect()
             }
+            startListeningForTcpMessages()
+            withContext(Dispatchers.Main) {
+                _isConnected.value = true
+            }
+
         }
     }
 
@@ -113,14 +108,12 @@ class MainViewModel : ViewModel() {
 
     fun startTcpServer(port: Int) {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                tcpServer.start(port)
-                withContext(Dispatchers.Main) {
-                    _isConnected.value = true
-                }
-            } catch (e: IOException) {
-                e.printStackTrace()
+
+            tcpServer.start(port)
+            withContext(Dispatchers.Main) {
+                _isConnected.value = true
             }
+
         }
     }
 

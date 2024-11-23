@@ -3,6 +3,8 @@ package com.socket.ui.screens
 import android.widget.Toast
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Divider
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -53,6 +55,10 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
             )
             Text("UDP")
         }
+
+        //connection status
+        Text(if (isConnected) "STATUS: running!" else "STATUS: stopped!", color = Color.Red)
+
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = {
@@ -94,7 +100,8 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
                 .fillMaxWidth()
                 .height(200.dp)
                 .padding(8.dp)
-                .border(1.dp, Color.Gray),
+                .border(1.dp, Color.Gray)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.Bottom
         ) {
             messages.forEach {
