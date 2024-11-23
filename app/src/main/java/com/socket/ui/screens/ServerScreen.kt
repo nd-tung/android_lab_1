@@ -124,6 +124,9 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
         Button(
             onClick = {
                 viewModel.sendTcpServerMessage(serverMessage)
+                //clear textfield
+                serverMessage = ""
+
 
             },
             enabled = isConnected && protocol == "TCP"

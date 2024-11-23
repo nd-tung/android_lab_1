@@ -17,6 +17,7 @@ import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -48,7 +49,7 @@ fun BottomBar(navController: NavHostController, viewModel: MainViewModel) {
 
     BottomNavigation {
         screens.forEach { screen ->
-                AddItems(screen = screen, currentDestination = currentDestination, navController = navController)
+            AddItems(screen = screen, currentDestination = currentDestination, navController = navController, viewModel = viewModel)
         }
     }
 }
@@ -57,8 +58,11 @@ fun BottomBar(navController: NavHostController, viewModel: MainViewModel) {
 fun RowScope.AddItems(
     screen: BottomBarScreen,
     currentDestination: NavDestination?,
-    navController: NavController
+    navController: NavController,
+    viewModel: MainViewModel
 ){
+    val isConnected by viewModel.isConnected.collectAsState()
+
     BottomNavigationItem(
         label = {
             Text(
@@ -74,6 +78,7 @@ fun RowScope.AddItems(
         selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
         onClick = {
             navController.navigate(screen.route)
-        }
+        },
+        enabled = !isConnected
     )
 }
