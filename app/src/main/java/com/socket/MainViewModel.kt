@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 
 class MainViewModel : ViewModel() {
@@ -28,33 +29,82 @@ class MainViewModel : ViewModel() {
     private val udpServer = UdpServer()
 
     fun connectTcpClient(serverIp: String, serverPort: Int) {
-        viewModelScope.launch {
-            tcpClient = TcpClient(serverIp, serverPort).apply {
-                connect()
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                tcpClient = TcpClient(serverIp, serverPort).apply {
+                    connect()
+                }
+                withContext(Dispatchers.Main) {
+                    _isConnected.value = true
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    _isConnected.value = false
+                }
             }
-            _isConnected.value = true
         }
     }
 
     fun sendTcpMessage(message: String) {
-        viewModelScope.launch {
-            tcpClient?.sendMessage(message)
-            addMessage("Client: $message")
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                tcpClient?.sendMessage(message)
+                withContext(Dispatchers.Main) {
+                    addMessage("Client: $message")
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun disconnectTcpClient() {
+        viewModelScope.launch(Dispatchers.IO) {
+            tcpClient?.close()
+            tcpClient = null
+            withContext(Dispatchers.Main) {
+                _isConnected.value = false
+            }
         }
     }
 
     fun connectUdpClient(serverIp: String, serverPort: Int) {
-        viewModelScope.launch {
-            udpClient = UdpClient(serverIp, serverPort)
-            _isConnected.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                udpClient = UdpClient(serverIp, serverPort)
+                withContext(Dispatchers.Main) {
+                    _isConnected.value = true
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    _isConnected.value = false
+                }
+            }
         }
     }
 
     fun sendUdpMessage(message: String) {
-        viewModelScope.launch {
-            udpClient?.sendMessage(message)
-            addMessage("Client: $message")
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                udpClient?.sendMessage(message)
+                withContext(Dispatchers.Main) {
+                    addMessage("Client: $message")
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun disconnectUdpClient() {
+        viewModelScope.launch(Dispatchers.IO) {
             udpClient?.close()
+            udpClient = null
+            withContext(Dispatchers.Main) {
+                _isConnected.value = false
+            }
         }
     }
 
@@ -62,7 +112,9 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 tcpServer.start(port)
-                _isConnected.value = true
+                withContext(Dispatchers.Main) {
+                    _isConnected.value = true
+                }
             } catch (e: IOException) {
                 e.printStackTrace()
             }
@@ -73,18 +125,47 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 udpServer.start(port)
-                _isConnected.value = true
-
+                withContext(Dispatchers.Main) {
+                    _isConnected.value = true
+                }
             } catch (e: IOException) {
                 e.printStackTrace()
             }
         }
     }
 
+    fun stopTcpServer() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                tcpServer.stop()
+                withContext(Dispatchers.Main) {
+                    _isConnected.value = false
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun stopUdpServer() {
+        viewModelScope.launch(Dispatchers.IO) {
+            udpServer.stop()
+            withContext(Dispatchers.Main) {
+                _isConnected.value = false
+            }
+        }
+    }
+
     fun sendServerMessage(message: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            tcpServer.sendMessageToAll(message)
-            addMessage("Server: $message")
+            try {
+                tcpServer.sendMessageToAll(message)
+                withContext(Dispatchers.Main) {
+                    addMessage("Server: $message")
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
         }
     }
 

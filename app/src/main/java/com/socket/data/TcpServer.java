@@ -19,17 +19,24 @@ public class TcpServer {
         this.messageCallback = messageCallback;
     }
 
-    public void start(int port) throws IOException {
-        serverSocket = new ServerSocket(port);
-        System.out.println("TCP Server started on port " + port);
+    public void start(int port) {
+        new Thread(() -> {
+            try {
+                serverSocket = new ServerSocket(port);
+                System.out.println("TCP Server started on port " + port);
 
-        while (true) {
-            Socket clientSocket = serverSocket.accept();
-            ClientHandler clientHandler = new ClientHandler(clientSocket);
-            clients.add(clientHandler);
-            clientHandler.start();
-        }
+                while (true) {
+                    Socket clientSocket = serverSocket.accept();
+                    ClientHandler clientHandler = new ClientHandler(clientSocket);
+                    clients.add(clientHandler);
+                    clientHandler.start();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
+
 
     public void stop() throws IOException {
         serverSocket.close();
