@@ -100,19 +100,10 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
                 }
             },
         ) {
-            if (isConnected) {
-                if(toastFlag.value){
-                    Toast.makeText(context, "Connection is established!", Toast.LENGTH_SHORT).show()
-                    toastFlag.value = false
-                }
+            if(isConnected)
                 Text("Disconnect")
-            } else {
-                if(toastFlag.value){
-                    Toast.makeText(context, "Connection is not established!", Toast.LENGTH_SHORT).show()
-                    toastFlag.value = false
-                }
+            else
                 Text("Connect")
-            }
         }
         Spacer(modifier = Modifier.height(8.dp))
 
