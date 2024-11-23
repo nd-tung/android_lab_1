@@ -11,7 +11,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.BufferedReader
 import java.io.IOException
+import java.io.InputStreamReader
 
 class MainViewModel : ViewModel() {
     private val _isConnected = MutableStateFlow(false)
@@ -24,7 +26,7 @@ class MainViewModel : ViewModel() {
     private var udpClient: UdpClient? = null
 
     private val tcpServer = TcpServer { message ->
-        addMessage("Server: $message")
+        addMessage("$message")
     }
     private val udpServer = UdpServer()
 
@@ -34,6 +36,7 @@ class MainViewModel : ViewModel() {
                 tcpClient = TcpClient(serverIp, serverPort).apply {
                     connect()
                 }
+                startListeningForTcpMessages()
                 withContext(Dispatchers.Main) {
                     _isConnected.value = true
                 }
@@ -49,7 +52,7 @@ class MainViewModel : ViewModel() {
     fun sendTcpMessage(message: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                tcpClient?.sendMessage(message)
+                tcpClient?.sendMessage("Client: $message")
                 withContext(Dispatchers.Main) {
                     addMessage("Client: $message")
                 }
@@ -88,7 +91,7 @@ class MainViewModel : ViewModel() {
     fun sendUdpMessage(message: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                udpClient?.sendMessage(message)
+                udpClient?.sendMessage("Client: $message")
                 withContext(Dispatchers.Main) {
                     addMessage("Client: $message")
                 }
@@ -159,7 +162,7 @@ class MainViewModel : ViewModel() {
     fun sendServerMessage(message: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                tcpServer.sendMessageToAll(message)
+                tcpServer.sendMessageToAll("Server: $message")
                 withContext(Dispatchers.Main) {
                     addMessage("Server: $message")
                 }
@@ -171,5 +174,21 @@ class MainViewModel : ViewModel() {
 
     private fun addMessage(message: String) {
         _messages.value = _messages.value + message
+    }
+
+    private fun startListeningForTcpMessages() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val reader = BufferedReader(InputStreamReader(tcpClient?.getInputStream()))
+                while (true) {
+                    val message = reader.readLine() ?: break
+                    withContext(Dispatchers.Main) {
+                        addMessage(message)
+                    }
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
     }
 }

@@ -57,20 +57,33 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
         Button(
             onClick = {
                 try {
-                    if (protocol == "TCP") {
-                        viewModel.startTcpServer(serverPort)
-                        Toast.makeText(context, "TCP Server is started!", Toast.LENGTH_SHORT).show()
+                    if (!isConnected) {
+                        if (protocol == "TCP") {
+                            viewModel.startTcpServer(serverPort)
+                            Toast.makeText(context, "TCP Server is started!", Toast.LENGTH_SHORT)
+                                .show()
+                        } else {
+                            viewModel.startUdpServer(serverPort)
+                            Toast.makeText(context, "UDP Server is started!", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    } else if (protocol == "TCP") {
+                        viewModel.stopTcpServer();
+                        Toast.makeText(context, "Server is stopped!", Toast.LENGTH_SHORT).show()
+
                     } else {
-                        viewModel.startUdpServer(serverPort)
-                        Toast.makeText(context, "UDP Server is started!", Toast.LENGTH_SHORT).show()
+                        viewModel.stopUdpServer();
+                        Toast.makeText(context, "Server is stopped!", Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
                     Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             },
-            enabled = !isConnected
         ) {
-            Text("Start Server")
+            if (isConnected)
+                Text("Stop Server")
+            else
+                Text("Start Server")
         }
 
 
