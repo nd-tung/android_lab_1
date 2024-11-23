@@ -123,7 +123,8 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
         //send message button
         Button(
             onClick = {
-                viewModel.sendServerMessage(serverMessage)
+                viewModel.sendTcpServerMessage(serverMessage)
+
             },
             enabled = isConnected
         ) {

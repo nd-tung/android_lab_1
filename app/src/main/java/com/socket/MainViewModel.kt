@@ -1,3 +1,4 @@
+// MainViewModel.kt (Updated to incorporate UDP and existing TCP logic)
 package com.socket
 
 import androidx.lifecycle.ViewModel
@@ -91,7 +92,7 @@ class MainViewModel : ViewModel() {
     fun sendUdpMessage(message: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                udpClient?.sendMessage("Client: $message")
+                udpClient?.sendMessage(message)
                 withContext(Dispatchers.Main) {
                     addMessage("Client: $message")
                 }
@@ -103,7 +104,6 @@ class MainViewModel : ViewModel() {
 
     fun disconnectUdpClient() {
         viewModelScope.launch(Dispatchers.IO) {
-            udpClient?.close()
             udpClient = null
             withContext(Dispatchers.Main) {
                 _isConnected.value = false
@@ -127,6 +127,11 @@ class MainViewModel : ViewModel() {
     fun startUdpServer(port: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                udpServer.setMessageListener { message ->
+                    viewModelScope.launch(Dispatchers.Main) {
+                        addMessage("Server received: $message")
+                    }
+                }
                 udpServer.start(port)
                 withContext(Dispatchers.Main) {
                     _isConnected.value = true
@@ -136,6 +141,7 @@ class MainViewModel : ViewModel() {
             }
         }
     }
+
 
     fun stopTcpServer() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -159,7 +165,7 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun sendServerMessage(message: String) {
+    fun sendTcpServerMessage(message: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 tcpServer.sendMessageToAll("Server: $message")
