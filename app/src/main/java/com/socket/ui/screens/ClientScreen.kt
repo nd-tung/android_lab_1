@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.socket.MainViewModel
+import com.socket.model.MessageObject
 
 @Composable
 fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
@@ -33,7 +34,6 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-
         //server ip field
         TextField(
             value = serverIp,
@@ -51,7 +51,6 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
             enabled = !isConnected
         )
         Spacer(modifier = Modifier.height(8.dp))
-
 
         //protocol selection
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -82,17 +81,14 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
                     if (!isConnected) {
                         if (protocol == "TCP") {
                             viewModel.connectTcpClient(serverIp, serverPort)
-
                         } else {
                             viewModel.connectUdpClient(serverIp, serverPort)
                         }
                     } else {
                         if (protocol == "TCP") {
                             viewModel.disconnectTcpClient()
-
                         } else {
                             viewModel.disconnectUdpClient()
-
                         }
                     }
                 } catch (e: Exception) {
@@ -100,7 +96,7 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
                 }
             },
         ) {
-            if(isConnected)
+            if (isConnected)
                 Text("Disconnect")
             else
                 Text("Connect")
@@ -119,7 +115,7 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
             verticalArrangement = Arrangement.Bottom
         ) {
             messages.forEach {
-                Text(it)
+                Text("Source: ${it.source}, Message: ${it.message}, Timestamp: ${it.timestamp}")
                 Divider()
             }
         }
@@ -136,10 +132,11 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
         //send message button
         Button(
             onClick = {
+                val messageObject = MessageObject(message, System.currentTimeMillis(), "Client")
                 if (protocol == "TCP") {
-                    viewModel.sendTcpMessage(message)
+                    viewModel.sendTcpMessage(messageObject)
                 } else {
-                    viewModel.sendUdpMessage(message)
+                    viewModel.sendUdpMessage(messageObject)
                 }
             },
             enabled = isConnected

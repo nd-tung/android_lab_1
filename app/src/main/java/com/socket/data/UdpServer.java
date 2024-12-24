@@ -4,18 +4,23 @@ import static android.content.ContentValues.TAG;
 
 import android.util.Log;
 
+import com.socket.model.MessageObject;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.SocketException;
 
 public class UdpServer {
     private DatagramSocket socket;
     private MessageListener listener;
 
-    // Interface để gửi callback khi nhận tin nhắn
+    // Interface to send callback when a message is received
     public interface MessageListener {
-        void onMessageReceived(String message);
+        void onMessageReceived(MessageObject message);
     }
 
     public void setMessageListener(MessageListener listener) {
@@ -27,21 +32,23 @@ public class UdpServer {
             try {
                 socket = new DatagramSocket(port);
                 Log.d(TAG, "UDP Server started on port " + port);
-                byte[] buffer = new byte[256];
+                byte[] buffer = new byte[1024];
 
                 while (true) {
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     socket.receive(packet);
 
-                    String receivedMessage = new String(packet.getData(), 0, packet.getLength());
+                    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(packet.getData(), 0, packet.getLength());
+                    ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
+                    MessageObject receivedMessage = (MessageObject) objectInputStream.readObject();
                     Log.d(TAG, "Received: " + receivedMessage);
 
-                    // Gọi callback khi nhận được tin nhắn
+                    // Call callback when a message is received
                     if (listener != null) {
                         listener.onMessageReceived(receivedMessage);
                     }
                 }
-            } catch (IOException e) {
+            } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
         }).start();

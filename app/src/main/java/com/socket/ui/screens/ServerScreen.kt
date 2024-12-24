@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.socket.MainViewModel
+import com.socket.model.MessageObject
 
 @Composable
 fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
@@ -74,11 +75,10 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
                                 .show()
                         }
                     } else if (protocol == "TCP") {
-                        viewModel.stopTcpServer();
+                        viewModel.stopTcpServer()
                         Toast.makeText(context, "Server is stopped!", Toast.LENGTH_SHORT).show()
-
                     } else {
-                        viewModel.stopUdpServer();
+                        viewModel.stopUdpServer()
                         Toast.makeText(context, "Server is stopped!", Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
@@ -92,7 +92,6 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
                 Text("Start Server")
         }
 
-
         //message display area
         Text("Messages", color = Color.Red, modifier = Modifier.padding(4.dp))
         Column(
@@ -105,7 +104,7 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
             verticalArrangement = Arrangement.Bottom
         ) {
             messages.forEach {
-                Text(it)
+                Text("Source: ${it.source}, Message: ${it.message}, Timestamp: ${it.timestamp}")
                 Divider()
             }
         }
@@ -123,11 +122,10 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
         //send message button
         Button(
             onClick = {
-                viewModel.sendTcpServerMessage(serverMessage)
+                val messageObject = MessageObject(serverMessage, System.currentTimeMillis(), "Server")
+                viewModel.sendTcpServerMessage(messageObject)
                 //clear textfield
                 serverMessage = ""
-
-
             },
             enabled = isConnected && protocol == "TCP"
         ) {
