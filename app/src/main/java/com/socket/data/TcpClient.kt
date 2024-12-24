@@ -1,40 +1,42 @@
 package com.socket.data
 
 import android.content.ContentValues.TAG
-import java.io.PrintWriter
-import java.net.Socket
 import android.util.Log
-import java.io.InputStream
-
+import com.socket.model.MessageObject
+import java.io.*
+import java.net.Socket
 
 class TcpClient(private val serverIp: String, private val serverPort: Int) {
     private var socket: Socket? = null
-    private var writer: PrintWriter? = null
+    private var outputStream: ObjectOutputStream? = null
+    private var inputStream: ObjectInputStream? = null
 
     fun connect() {
-
         socket = Socket(serverIp, serverPort)
-        writer = PrintWriter(socket!!.getOutputStream(), true)
+        outputStream = ObjectOutputStream(socket!!.getOutputStream())
+        inputStream = ObjectInputStream(socket!!.getInputStream())
 
         Log.d(TAG, "TCP CONNECTED")
     }
 
-    fun sendMessage(message: String) {
-        writer?.println(message)
+    fun sendMessage(message: MessageObject) {
+        outputStream?.writeObject(message)
+        outputStream?.flush()
     }
 
-    fun close() {
-        writer?.close()
-        socket?.close()
-    }
-
-    fun getInputStream(): InputStream? {
+    fun receiveMessage(): MessageObject? {
         return try {
-            socket?.getInputStream()
+            inputStream?.readObject() as? MessageObject
         } catch (e: Exception) {
-            Log.d(TAG, "Error getting input stream: ${e.message}")
+            Log.d(TAG, "Error receiving message: ${e.message}")
             e.printStackTrace()
             null
         }
+    }
+
+    fun close() {
+        outputStream?.close()
+        inputStream?.close()
+        socket?.close()
     }
 }

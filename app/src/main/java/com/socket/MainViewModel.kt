@@ -1,4 +1,3 @@
-// MainViewModel.kt (Updated to incorporate UDP and existing TCP logic)
 package com.socket
 
 import androidx.lifecycle.ViewModel
@@ -7,27 +6,26 @@ import com.socket.data.TcpClient
 import com.socket.data.UdpClient
 import com.socket.data.TcpServer
 import com.socket.data.UdpServer
+import com.socket.model.MessageObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.BufferedReader
 import java.io.IOException
-import java.io.InputStreamReader
 
 class MainViewModel : ViewModel() {
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected
 
-    private val _messages = MutableStateFlow<List<String>>(emptyList())
-    val messages: StateFlow<List<String>> = _messages
+    private val _messages = MutableStateFlow<List<MessageObject>>(emptyList())
+    val messages: StateFlow<List<MessageObject>> = _messages
 
     private var tcpClient: TcpClient? = null
     private var udpClient: UdpClient? = null
 
     private val tcpServer = TcpServer { message ->
-        addMessage("$message")
+        addMessage(message)
     }
     private val udpServer = UdpServer()
 
@@ -50,12 +48,12 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun sendTcpMessage(message: String) {
+    fun sendTcpMessage(message: MessageObject) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                tcpClient?.sendMessage("Client: $message")
+                tcpClient?.sendMessage(message)
                 withContext(Dispatchers.Main) {
-                    addMessage("Client: $message")
+                    addMessage(message)
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -89,12 +87,12 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun sendUdpMessage(message: String) {
+    fun sendUdpMessage(message: MessageObject) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 udpClient?.sendMessage(message)
                 withContext(Dispatchers.Main) {
-                    addMessage("Client: $message")
+                    addMessage(message)
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -129,7 +127,7 @@ class MainViewModel : ViewModel() {
             try {
                 udpServer.setMessageListener { message ->
                     viewModelScope.launch(Dispatchers.Main) {
-                        addMessage("Server received: $message")
+                        addMessage(message)
                     }
                 }
                 udpServer.start(port)
@@ -141,7 +139,6 @@ class MainViewModel : ViewModel() {
             }
         }
     }
-
 
     fun stopTcpServer() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -165,12 +162,12 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun sendTcpServerMessage(message: String) {
+    fun sendTcpServerMessage(message: MessageObject) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                tcpServer.sendMessageToAll("Server: $message")
+                tcpServer.sendMessageToAll(message)
                 withContext(Dispatchers.Main) {
-                    addMessage("Server: $message")
+                    addMessage(message)
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -178,16 +175,19 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    private fun addMessage(message: String) {
-        _messages.value = _messages.value + message
+    private fun addMessage(message: MessageObject) {
+        viewModelScope.launch(Dispatchers.Main) {
+            val updatedMessages = _messages.value.toMutableList()
+            updatedMessages.add(message)
+            _messages.value = updatedMessages
+        }
     }
 
     private fun startListeningForTcpMessages() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val reader = BufferedReader(InputStreamReader(tcpClient?.getInputStream()))
                 while (true) {
-                    val message = reader.readLine() ?: break
+                    val message = tcpClient?.receiveMessage() ?: break
                     withContext(Dispatchers.Main) {
                         addMessage(message)
                     }

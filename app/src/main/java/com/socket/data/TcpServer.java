@@ -3,15 +3,16 @@ package com.socket.data;
 import static android.content.ContentValues.TAG;
 
 import android.util.Log;
-import android.widget.Toast;
+
+import com.socket.model.MessageObject;
 
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -19,7 +20,7 @@ public class TcpServer {
     private ServerSocket serverSocket;
     private final List<ClientHandler> clients = new ArrayList<>();
     private final MessageCallback messageCallback;
-    private final ExecutorService clientExecutor = Executors.newCachedThreadPool(); // Sử dụng ExecutorService
+    private final ExecutorService clientExecutor = Executors.newCachedThreadPool();
 
     public TcpServer(MessageCallback messageCallback) {
         this.messageCallback = messageCallback;
@@ -36,7 +37,6 @@ public class TcpServer {
                     ClientHandler clientHandler = new ClientHandler(clientSocket);
                     clients.add(clientHandler);
 
-                    // Use ExecutorService to run ClientHandler
                     clientExecutor.execute(clientHandler);
                 }
             } catch (IOException e) {
@@ -47,12 +47,10 @@ public class TcpServer {
 
     public void stop() throws IOException {
         serverSocket.close();
-
-        //Stop ExecutorService when server stops
         clientExecutor.shutdown();
     }
 
-    public void sendMessageToAll(String message) {
+    public void sendMessageToAll(MessageObject message) {
         for (ClientHandler client : clients) {
             client.sendMessage(message);
         }
@@ -60,8 +58,8 @@ public class TcpServer {
 
     private class ClientHandler implements Runnable {
         private final Socket clientSocket;
-        private PrintWriter out;
-        private Scanner in;
+        private ObjectOutputStream out;
+        private ObjectInputStream in;
 
         public ClientHandler(Socket socket) {
             this.clientSocket = socket;
@@ -70,22 +68,27 @@ public class TcpServer {
         @Override
         public void run() {
             try {
-                out = new PrintWriter(clientSocket.getOutputStream(), true);
-                in = new Scanner(clientSocket.getInputStream());
-                while (in.hasNextLine()) {
-                    String message = in.nextLine();
+                out = new ObjectOutputStream(clientSocket.getOutputStream());
+                in = new ObjectInputStream(clientSocket.getInputStream());
+                while (true) {
+                    MessageObject message = (MessageObject) in.readObject();
                     messageCallback.onMessageReceived(message);
                 }
-            } catch (IOException e) {
+            } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             } finally {
                 closeConnection();
             }
         }
 
-        public void sendMessage(String message) {
-            if (out != null) {
-                out.println(message);
+        public void sendMessage(MessageObject message) {
+            try {
+                if (out != null) {
+                    out.writeObject(message);
+                    out.flush();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 
@@ -101,7 +104,6 @@ public class TcpServer {
     }
 
     public interface MessageCallback {
-        void onMessageReceived(String message);
+        void onMessageReceived(MessageObject message);
     }
-
 }
