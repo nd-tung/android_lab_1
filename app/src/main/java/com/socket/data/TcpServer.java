@@ -5,7 +5,11 @@ import static android.content.ContentValues.TAG;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.socket.model.MessageObject;
+
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -19,7 +23,7 @@ public class TcpServer {
     private ServerSocket serverSocket;
     private final List<ClientHandler> clients = new ArrayList<>();
     private final MessageCallback messageCallback;
-    private final ExecutorService clientExecutor = Executors.newCachedThreadPool(); // Sử dụng ExecutorService
+    private final ExecutorService clientExecutor = Executors.newCachedThreadPool();  // Executor service to handle client threads
 
     public TcpServer(MessageCallback messageCallback) {
         this.messageCallback = messageCallback;
@@ -32,11 +36,11 @@ public class TcpServer {
                 Log.d(TAG, "TCP Server started on port " + port);
 
                 while (true) {
+                    // Accept new client connections
                     Socket clientSocket = serverSocket.accept();
                     ClientHandler clientHandler = new ClientHandler(clientSocket);
                     clients.add(clientHandler);
-
-                    // Use ExecutorService to run ClientHandler
+                    // Execute client handler in a separate thread
                     clientExecutor.execute(clientHandler);
                 }
             } catch (IOException e) {
@@ -47,21 +51,22 @@ public class TcpServer {
 
     public void stop() throws IOException {
         serverSocket.close();
-
-        //Stop ExecutorService when server stops
+        // Shutdown the ExecutorService when server stops
         clientExecutor.shutdown();
     }
 
-    public void sendMessageToAll(String message) {
+    // Send MessageObject to all connected clients
+    public void sendMessageToAll(MessageObject message) {
         for (ClientHandler client : clients) {
-            client.sendMessage(message);
+            client.sendObject(message);
         }
     }
 
+    // Client handler class to manage individual client connections
     private class ClientHandler implements Runnable {
         private final Socket clientSocket;
-        private PrintWriter out;
-        private Scanner in;
+        private ObjectOutputStream out;
+        private ObjectInputStream in;
 
         public ClientHandler(Socket socket) {
             this.clientSocket = socket;
@@ -70,29 +75,45 @@ public class TcpServer {
         @Override
         public void run() {
             try {
-                out = new PrintWriter(clientSocket.getOutputStream(), true);
-                in = new Scanner(clientSocket.getInputStream());
-                while (in.hasNextLine()) {
-                    String message = in.nextLine();
-                    messageCallback.onMessageReceived(message);
+                // Initialize ObjectOutputStream and ObjectInputStream
+                out = new ObjectOutputStream(clientSocket.getOutputStream());
+                in = new ObjectInputStream(clientSocket.getInputStream());
+                out.flush();  // Ensure data is sent immediately
+
+                while (true) {
+                    // Read the object sent by the client
+                    Object message = in.readObject();
+                    if (message instanceof String) {
+                        // Handle String message
+                        messageCallback.onMessageReceived((String) message);
+                    } else if (message instanceof MessageObject) {
+                        // Handle MessageObject
+                        messageCallback.onObjectReceived((MessageObject) message);
+                    }
                 }
-            } catch (IOException e) {
+            } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             } finally {
                 closeConnection();
             }
         }
 
-        public void sendMessage(String message) {
-            if (out != null) {
-                out.println(message);
+        // Send an Message Object to the client
+        public void sendObject(MessageObject message) {
+            try {
+                if (out != null) {
+                    out.writeObject(message);  // Send the object to the client
+                    out.flush();  // Ensure data is sent immediately
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 
         private void closeConnection() {
             try {
                 if (clientSocket != null) {
-                    clientSocket.close();
+                    clientSocket.close();  // Close client connection
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -100,8 +121,9 @@ public class TcpServer {
         }
     }
 
+    // Callback interface to handle received messages and objects
     public interface MessageCallback {
         void onMessageReceived(String message);
+        void onObjectReceived(MessageObject message);
     }
-
 }

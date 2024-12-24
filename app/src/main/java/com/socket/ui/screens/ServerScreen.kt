@@ -15,124 +15,135 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.socket.MainViewModel
+import com.socket.model.MessageObject
 
 @Composable
 fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
 
+    // Local state for server port, protocol selection, and message input
     var serverPort by remember { mutableStateOf(12345) }
     var protocol by remember { mutableStateOf("TCP") }
-    var serverMessage by remember { mutableStateOf("") }
+    var serverMessage by remember { mutableStateOf("") } // This will hold the message input as String
     val isConnected by viewModel.isConnected.collectAsState()
     val messages by viewModel.messages.collectAsState()
     val context = LocalContext.current
 
+    // UI layout structure
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(8.dp))
+        // Server Port Input
         TextField(
             value = serverPort.toString(),
             onValueChange = { serverPort = it.toIntOrNull() ?: 12345 },
             label = { Text("Server Port") },
-            enabled = !isConnected
+            enabled = !isConnected // Disable when connected
         )
         Spacer(modifier = Modifier.height(8.dp))
+
+        // Protocol selection (TCP or UDP)
         Row(verticalAlignment = Alignment.CenterVertically) {
             RadioButton(
                 selected = protocol == "TCP",
                 onClick = { protocol = "TCP" },
-                enabled = !isConnected
+                enabled = !isConnected // Disable when connected
             )
             Text("TCP")
             Spacer(modifier = Modifier.width(16.dp))
             RadioButton(
                 selected = protocol == "UDP",
                 onClick = { protocol = "UDP" },
-                enabled = !isConnected
+                enabled = !isConnected // Disable when connected
             )
             Text("UDP")
         }
 
-        //connection status
-        Text(if (isConnected) "STATUS: running!" else "STATUS: stopped!", color = Color.Red)
+        // Connection status
+        Text(
+            if (isConnected) "STATUS: running!" else "STATUS: stopped!",
+            color = if (isConnected) Color.Green else Color.Red
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
+
+        // Start/Stop Server button
         Button(
             onClick = {
                 try {
                     if (!isConnected) {
+                        // Start server based on selected protocol
                         if (protocol == "TCP") {
                             viewModel.startTcpServer(serverPort)
-                            Toast.makeText(context, "TCP Server is started!", Toast.LENGTH_SHORT)
-                                .show()
+                            Toast.makeText(context, "TCP Server is started!", Toast.LENGTH_SHORT).show()
                         } else {
                             viewModel.startUdpServer(serverPort)
-                            Toast.makeText(context, "UDP Server is started!", Toast.LENGTH_SHORT)
-                                .show()
+                            Toast.makeText(context, "UDP Server is started!", Toast.LENGTH_SHORT).show()
                         }
-                    } else if (protocol == "TCP") {
-                        viewModel.stopTcpServer();
-                        Toast.makeText(context, "Server is stopped!", Toast.LENGTH_SHORT).show()
-
                     } else {
-                        viewModel.stopUdpServer();
-                        Toast.makeText(context, "Server is stopped!", Toast.LENGTH_SHORT).show()
+                        // Stop server based on selected protocol
+                        if (protocol == "TCP") {
+                            viewModel.stopTcpServer()
+                            Toast.makeText(context, "TCP Server is stopped!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            viewModel.stopUdpServer()
+                            Toast.makeText(context, "UDP Server is stopped!", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 } catch (e: Exception) {
                     Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
-            },
+            }
         ) {
-            if (isConnected)
-                Text("Stop Server")
-            else
-                Text("Start Server")
+            Text(if (isConnected) "Stop Server" else "Start Server")
         }
 
-
-        //message display area
+        // Message Display Area
         Text("Messages", color = Color.Red, modifier = Modifier.padding(4.dp))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(150.dp)
                 .padding(8.dp)
                 .border(1.dp, Color.Gray)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.Bottom
         ) {
+            // Display the messages
             messages.forEach {
-                Text(it)
+                Text(it.message) // Display each message's content
                 Divider()
             }
         }
+
         Spacer(modifier = Modifier.height(16.dp))
 
-        //message field
+        // Message Input Field
         TextField(
             value = serverMessage,
             onValueChange = { serverMessage = it },
             label = { Text("Server Message") },
-            enabled = isConnected && protocol == "TCP",
+            enabled = isConnected && protocol == "TCP" // Only enabled for TCP protocol when connected
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        //send message button
+        // Send Message Button
         Button(
             onClick = {
-                viewModel.sendTcpServerMessage(serverMessage)
-                //clear textfield
-                serverMessage = ""
-
-
+                // Convert the server message to MessageObject and send it
+                val messageObject = MessageObject(serverMessage, System.currentTimeMillis())
+                if (protocol == "TCP") {
+                    viewModel.sendTcpServerMessage(messageObject) // Send TCP message
+                }
+                serverMessage = "" // Clear the input field after sending the message
             },
-            enabled = isConnected && protocol == "TCP"
+            enabled = isConnected && protocol == "TCP" // Only enabled for TCP when connected
         ) {
             Text("Send Message")
         }
+
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
