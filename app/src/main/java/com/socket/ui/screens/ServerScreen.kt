@@ -26,6 +26,9 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
     val isConnected by viewModel.isConnected.collectAsState()
     val messages by viewModel.messages.collectAsState()
     val context = LocalContext.current
+    val tcpAverageDelay by viewModel.tcpAverageDelay.collectAsState()
+    val udpAverageDelay by viewModel.udpAverageDelay.collectAsState()
+
 
     Column(
         modifier = Modifier
@@ -59,6 +62,9 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
 
         //connection status
         Text(if (isConnected) "STATUS: running!" else "STATUS: stopped!", color = Color.Red)
+
+        //average delay display
+        Text(if (protocol == "TCP") "Average Delay: $tcpAverageDelay ms" else "Average Delay: $udpAverageDelay ms", color = Color.Blue)
 
         Spacer(modifier = Modifier.height(8.dp))
         Button(
@@ -97,7 +103,7 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(150.dp)
                 .padding(8.dp)
                 .border(1.dp, Color.Gray)
                 .verticalScroll(rememberScrollState()),

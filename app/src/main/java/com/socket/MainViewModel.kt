@@ -1,5 +1,7 @@
 package com.socket
 
+import android.content.ContentValues.TAG
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.socket.data.TcpClient
@@ -29,6 +31,14 @@ class MainViewModel : ViewModel() {
     }
     private val udpServer = UdpServer()
 
+    var numOfMessages = MutableStateFlow(1)
+
+    private val _tcpAverageDelay = MutableStateFlow(0L)
+    val tcpAverageDelay: StateFlow<Long> = _tcpAverageDelay
+
+    private val _udpAverageDelay = MutableStateFlow(0L)
+    val udpAverageDelay: StateFlow<Long> = _udpAverageDelay
+
     fun connectTcpClient(serverIp: String, serverPort: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -51,9 +61,15 @@ class MainViewModel : ViewModel() {
     fun sendTcpMessage(message: MessageObject) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                tcpClient?.sendMessage(message)
-                withContext(Dispatchers.Main) {
-                    addMessage(message)
+                tcpServer.resetMetrics()
+                repeat(numOfMessages.value) {
+                    tcpClient?.sendMessage(message)
+                    //updateAverageDelay(tcpServer.averageDelay)
+                    //Log.d(TAG, "Count: " + tcpServer.messageCount);
+                    withContext(Dispatchers.Main) {
+                        addMessage(message)
+
+                    }
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -90,9 +106,13 @@ class MainViewModel : ViewModel() {
     fun sendUdpMessage(message: MessageObject) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                udpClient?.sendMessage(message)
-                withContext(Dispatchers.Main) {
-                    addMessage(message)
+                udpServer.resetMetrics()
+                repeat(numOfMessages.value) {
+                    udpClient?.sendMessage(message)
+                    withContext(Dispatchers.Main) {
+                        addMessage(message)
+
+                    }
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -180,6 +200,10 @@ class MainViewModel : ViewModel() {
             val updatedMessages = _messages.value.toMutableList()
             updatedMessages.add(message)
             _messages.value = updatedMessages
+            Log.d(TAG, "COUNT: " + tcpServer.messageCount);
+            updateTcpAverageDelay(tcpServer.averageDelay)
+            updateUdpAverageDelay(udpServer.averageDelay)
+
         }
     }
 
@@ -191,10 +215,25 @@ class MainViewModel : ViewModel() {
                     withContext(Dispatchers.Main) {
                         addMessage(message)
                     }
+
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
             }
         }
     }
+
+    private fun updateTcpAverageDelay(delay: Long) {
+        viewModelScope.launch(Dispatchers.Main) {
+            _tcpAverageDelay.value = delay
+        }
+    }
+
+
+    private fun updateUdpAverageDelay(delay: Long) {
+        viewModelScope.launch(Dispatchers.Main) {
+            _udpAverageDelay.value = delay
+        }
+    }
+
 }

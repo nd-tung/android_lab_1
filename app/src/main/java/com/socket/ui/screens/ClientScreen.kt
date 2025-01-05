@@ -22,6 +22,7 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
     var message by remember { mutableStateOf("") }
     var serverIp by remember { mutableStateOf("192.168.1.1") }
     var serverPort by remember { mutableStateOf(12345) }
+    val numOfMessages by viewModel.numOfMessages.collectAsState()
     var protocol by remember { mutableStateOf("TCP") }
     val isConnected by viewModel.isConnected.collectAsState()
     val messages by viewModel.messages.collectAsState()
@@ -51,6 +52,8 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
             enabled = !isConnected
         )
         Spacer(modifier = Modifier.height(8.dp))
+
+
 
         //protocol selection
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -108,7 +111,7 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(150.dp)
                 .padding(8.dp)
                 .border(1.dp, Color.Gray)
                 .verticalScroll(rememberScrollState()),
@@ -126,6 +129,15 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
             onValueChange = { message = it },
             label = { Text("Message") },
             enabled = isConnected
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+
+        //number of messages field
+        TextField(
+            value = numOfMessages.toString(),
+            onValueChange = { viewModel.numOfMessages.value = it.toIntOrNull() ?: 1 },
+            label = { Text("Number of Messages") }
         )
         Spacer(modifier = Modifier.height(8.dp))
 
