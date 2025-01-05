@@ -19,7 +19,7 @@ import com.socket.model.MessageObject
 
 @Composable
 fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
-    var message by remember { mutableStateOf("") }
+    val message by viewModel.message.collectAsState()
     var serverIp by remember { mutableStateOf("192.168.1.1") }
     var serverPort by remember { mutableStateOf(12345) }
     val numOfMessages by viewModel.numOfMessages.collectAsState()
@@ -126,7 +126,7 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
         //message field
         TextField(
             value = message,
-            onValueChange = { message = it },
+            onValueChange = { viewModel.message.value = it },
             label = { Text("Message") },
             enabled = isConnected
         )
@@ -144,11 +144,15 @@ fun ClientScreen(navController: NavHostController, viewModel: MainViewModel) {
         //send message button
         Button(
             onClick = {
-                val messageObject = MessageObject(message, System.currentTimeMillis(), "Client")
+
                 if (protocol == "TCP") {
-                    viewModel.sendTcpMessage(messageObject)
+                    viewModel.sendTcpMessage()
+
+
                 } else {
-                    viewModel.sendUdpMessage(messageObject)
+                    viewModel.sendUdpMessage()
+
+
                 }
             },
             enabled = isConnected

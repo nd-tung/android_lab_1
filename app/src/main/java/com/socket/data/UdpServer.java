@@ -1,5 +1,6 @@
 package com.socket.data;
 
+import android.os.Build;
 import android.util.Log;
 
 import com.socket.model.MessageObject;
@@ -11,6 +12,7 @@ import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.time.Instant;
 
 public class UdpServer {
     private static final String TAG = "UdpServer";
@@ -22,7 +24,7 @@ public class UdpServer {
     private int messageCount = 0;
     private volatile boolean isRunning = false;
 
-    public void resetMetrics() {
+    public synchronized void resetMetrics() {
         totalDelay = 0;
         messageCount = 0;
     }
@@ -68,10 +70,16 @@ public class UdpServer {
 
                         Log.d(TAG, "Received: " + receivedMessage);
 
-                        // Calculate delay
-                        long delay = System.currentTimeMillis() - receivedMessage.getTimestamp();
-                        updateMetrics(delay);
+                        //calculate delay
+                        int delay = 0;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            delay = (int) (Instant.now().toEpochMilli() - receivedMessage.getTimestamp());
+                        } else {
+                            delay = (int) (System.currentTimeMillis() - receivedMessage.getTimestamp());
+                        }
 
+                        updateMetrics(delay);
+                        Log.d(TAG, "Delay: " + delay + " ms, Average Delay: " + getAverageDelay() + " ms" + ", COUNT: " + getMessageCount());
                         // Call listener callback
                         if (listener != null) {
                             listener.onMessageReceived(receivedMessage);
@@ -102,6 +110,6 @@ public class UdpServer {
     private synchronized void updateMetrics(long delay) {
         totalDelay += delay;
         messageCount++;
-        Log.d(TAG, "Delay: " + delay + " ms, Average Delay: " + getAverageDelay() + " ms");
+
     }
 }

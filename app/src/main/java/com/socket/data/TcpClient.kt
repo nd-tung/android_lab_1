@@ -19,6 +19,7 @@ class TcpClient(private val serverIp: String, private val serverPort: Int) {
         Log.d(TAG, "TCP CONNECTED")
     }
 
+    @Synchronized
     fun sendMessage(message: MessageObject) {
         outputStream?.writeObject(message)
         outputStream?.flush()

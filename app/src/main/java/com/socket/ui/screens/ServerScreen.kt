@@ -128,9 +128,9 @@ fun ServerScreen(navController: NavHostController, viewModel: MainViewModel) {
         //send message button
         Button(
             onClick = {
-                val messageObject = MessageObject(serverMessage, System.currentTimeMillis(), "Server")
+                val messageObject = MessageObject(serverMessage, "Server")
                 viewModel.sendTcpServerMessage(messageObject)
-                //clear textfield
+                //clear text field
                 serverMessage = ""
             },
             enabled = isConnected && protocol == "TCP"

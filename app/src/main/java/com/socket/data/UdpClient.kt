@@ -12,6 +12,7 @@ import java.net.InetAddress
 class UdpClient(private val serverIp: String, private val serverPort: Int) {
     private val socket = DatagramSocket()
 
+    @Synchronized
     fun sendMessage(message: MessageObject) {
         val byteArrayOutputStream = ByteArrayOutputStream()
         val objectOutputStream = ObjectOutputStream(byteArrayOutputStream)
@@ -20,15 +21,6 @@ class UdpClient(private val serverIp: String, private val serverPort: Int) {
         val data = byteArrayOutputStream.toByteArray()
         val packet = DatagramPacket(data, data.size, InetAddress.getByName(serverIp), serverPort)
         socket.send(packet)
-    }
-
-    fun receiveMessage(): MessageObject? {
-        val buffer = ByteArray(1024)
-        val packet = DatagramPacket(buffer, buffer.size)
-        socket.receive(packet)
-        val byteArrayInputStream = ByteArrayInputStream(packet.data)
-        val objectInputStream = ObjectInputStream(byteArrayInputStream)
-        return objectInputStream.readObject() as? MessageObject
     }
 
     fun close() {

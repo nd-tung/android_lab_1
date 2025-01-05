@@ -10,9 +10,12 @@ import com.socket.data.TcpServer
 import com.socket.data.UdpServer
 import com.socket.model.MessageObject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
@@ -32,12 +35,15 @@ class MainViewModel : ViewModel() {
     private val udpServer = UdpServer()
 
     var numOfMessages = MutableStateFlow(1)
+    var message = MutableStateFlow("")
 
     private val _tcpAverageDelay = MutableStateFlow(0L)
     val tcpAverageDelay: StateFlow<Long> = _tcpAverageDelay
 
     private val _udpAverageDelay = MutableStateFlow(0L)
     val udpAverageDelay: StateFlow<Long> = _udpAverageDelay
+
+    private val messageMutex = Mutex()
 
     fun connectTcpClient(serverIp: String, serverPort: Int) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -58,17 +64,17 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun sendTcpMessage(message: MessageObject) {
+    fun sendTcpMessage() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 tcpServer.resetMetrics()
                 repeat(numOfMessages.value) {
-                    tcpClient?.sendMessage(message)
-                    //updateAverageDelay(tcpServer.averageDelay)
-                    //Log.d(TAG, "Count: " + tcpServer.messageCount);
-                    withContext(Dispatchers.Main) {
-                        addMessage(message)
-
+                    messageMutex.withLock{
+                        var message = MessageObject(message.value, "Client")
+                        tcpClient?.sendMessage(message)
+                        withContext(Dispatchers.Main) {
+                            addMessage(message)
+                        }
                     }
                 }
             } catch (e: IOException) {
@@ -103,15 +109,16 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun sendUdpMessage(message: MessageObject) {
+    fun sendUdpMessage() {
+
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 udpServer.resetMetrics()
                 repeat(numOfMessages.value) {
+                    var message = MessageObject(message.value, "Client")
                     udpClient?.sendMessage(message)
                     withContext(Dispatchers.Main) {
                         addMessage(message)
-
                     }
                 }
             } catch (e: IOException) {
@@ -200,7 +207,6 @@ class MainViewModel : ViewModel() {
             val updatedMessages = _messages.value.toMutableList()
             updatedMessages.add(message)
             _messages.value = updatedMessages
-            Log.d(TAG, "COUNT: " + tcpServer.messageCount);
             updateTcpAverageDelay(tcpServer.averageDelay)
             updateUdpAverageDelay(udpServer.averageDelay)
 
